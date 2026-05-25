@@ -54,7 +54,7 @@ El servidor queda corriendo en segundo plano y expone el puerto `8000` en tu má
 
 ### 3. Obtener las credenciales de administrador
 
-Las credenciales se generan aleatoriamente en cada arranque y se imprimen en los logs del contenedor:
+Las credenciales son fijas y se imprimen en los logs del contenedor:
 
 ```bash
 docker logs voting-app
@@ -69,11 +69,11 @@ Busca el bloque que se ve así:
   ADMIN DASHBOARD LOGIN CREDENTIALS:
     - URL:       http://localhost:8000/admin
     - Username:  admin
-    - Password:  <contraseña generada>
+    - Password:  admin123
 ======================================================================
 ```
 
-Guarda la contraseña, la necesitarás para acceder al panel de administración.
+Esas credenciales se usan siempre para acceder al panel de administración.
 
 ### 4. Acceder a los paneles
 

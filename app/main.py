@@ -20,9 +20,8 @@ from app.database import (
 )
 from app.schemas import VotePayloadSchema, TokenBatchSchema
 
-# Generate Admin Credentials dynamically at server startup
 ADMIN_USERNAME = "admin"
-ADMIN_PASSWORD = secrets.token_urlsafe(8)
+ADMIN_PASSWORD = "admin123"
 
 app = FastAPI(
     title="Cryptographic Classroom Voting System",
