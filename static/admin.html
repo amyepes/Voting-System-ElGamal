@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cryptovote - Admin Control Center</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="glow-bg"></div>
+    <div class="container">
+        <!-- HEADER -->
+        <header>
+            <div class="logo">
+                <h1>Cryptovote</h1>
+                <span class="badge admin">ADMIN CONTROL</span>
+            </div>
+            <p class="subtitle">Secure Classroom Voting powered by Homomorphic ElGamal & 1-out-of-2 NIZK Proofs</p>
+        </header>
+
+        <!-- ELECTION PARAMS AND ACCUMULATOR STATS -->
+        <div class="grid-2">
+            <div class="card param-card">
+                <h3>Public Cryptographic Parameters</h3>
+                <div class="param-grid">
+                    <div class="param-item">
+                        <span class="param-label">Modulus (p) - RFC 3526 Group 14 (2048-bit)</span>
+                        <span class="param-value hex-val" id="val-p">Loading...</span>
+                    </div>
+                    <div class="param-grid-row">
+                        <div class="param-item">
+                            <span class="param-label">Subgroup Order (q)</span>
+                            <span class="param-value hex-val" id="val-q">Loading...</span>
+                        </div>
+                        <div class="param-item">
+                            <span class="param-label">Generator (g)</span>
+                            <span class="param-value" id="val-g">Loading...</span>
+                        </div>
+                    </div>
+                    <div class="param-item">
+                        <span class="param-label">Server Public Key (u)</span>
+                        <span class="param-value hex-val" id="val-u">Loading...</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card accumulator-card">
+                <h3>Global Homomorphic Accumulator</h3>
+                <div class="acc-grid">
+                    <div class="acc-stat-box">
+                        <span class="acc-stat-label">Votes Cast</span>
+                        <span class="acc-stat-number" id="val-votes-count">0</span>
+                    </div>
+                    <div class="acc-details">
+                        <div class="param-item">
+                            <span class="param-label">Accumulated C₁ (g^∑rᵢ mod p)</span>
+                            <span class="param-value hex-val" id="val-c1">1</span>
+                        </div>
+                        <div class="param-item">
+                            <span class="param-label">Accumulated C₂ (u^∑rᵢ * g^∑bᵢ mod p)</span>
+                            <span class="param-value hex-val" id="val-c2">1</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="election-status-tag open" id="val-election-status">ELECTION OPEN</div>
+            </div>
+        </div>
+
+        <div class="grid-3 admin-grid">
+            <!-- ADMIN CONTROLS -->
+            <div class="card admin-controls-card">
+                <h2>Admin Panel</h2>
+                <p class="section-desc">Manage the lifecycle of the classroom vote, generate student tokens, and close/reset state.</p>
+                
+                <div class="control-section">
+                    <h4>Single-Use Token Generator</h4>
+                    <div class="token-generator-row">
+                        <input type="number" id="token-count-input" value="5" min="1" max="100">
+                        <button class="btn btn-primary" id="btn-generate-tokens">Generate Tokens</button>
+                    </div>
+                </div>
+
+                <div class="control-section lifecycle-actions">
+                    <h4>🏁 Election Lifecycle</h4>
+                    <button class="btn btn-warning btn-full" id="btn-close-election">Close Election & Tally</button>
+                    <button class="btn btn-danger btn-full" id="btn-reset-election">Reset / Start New Election</button>
+                </div>
+            </div>
+
+            <!-- TOKENS LEDGER -->
+            <div class="card tokens-ledger-card">
+                <h2>Token Registry</h2>
+                <p class="section-desc">Monitor student eligibility and prevent double voting in real-time.</p>
+                <div class="token-list-container" id="token-registry-list">
+                    <div class="empty-state">No tokens registered yet. Generate some above!</div>
+                </div>
+            </div>
+
+            <!-- ELECTION DECISION / TALLY DISPLAY -->
+            <div class="card results-card" id="results-display-card">
+                <h2>Decrypted Election Tally</h2>
+                <div class="results-blur-overlay" id="results-lock-overlay">
+                    <div class="lock-box">
+                        <h4>Tally Locked</h4>
+                        <p>Close the election to perform homomorphic decryption and reveal results.</p>
+                    </div>
+                </div>
+                <div class="results-content hidden" id="results-active-content">
+                    <div class="tally-box">
+                        <div class="tally-stat">
+                            <span class="tally-number" id="val-yes-count">0</span>
+                            <span class="tally-label">YES TALLY (b = 1)</span>
+                        </div>
+                        <div class="tally-stat">
+                            <span class="tally-number" id="val-no-count">0</span>
+                            <span class="tally-label">NO TALLY (b = 0)</span>
+                        </div>
+                    </div>
+
+                    <div class="progress-bar-container">
+                        <div class="progress-bar-fill" id="val-yes-percentage-bar" style="width: 50%;"></div>
+                    </div>
+                    <div class="percentage-labels">
+                        <span class="pct-yes" id="val-yes-percentage">50% YES</span>
+                        <span class="pct-no" id="val-no-percentage">50% NO</span>
+                    </div>
+
+                    <div class="decryption-math-explainer">
+                        <h5>Homomorphic Decryption Math</h5>
+                        <p class="explainer-formula">
+                            V = C₂ * (C₁^α)⁻¹ ≡ g^σ mod p
+                        </p>
+                        <div class="explainer-details">
+                            <p><strong>C₂:</strong> <span class="hex-val font-mono" id="val-dec-c2"></span></p>
+                            <p><strong>C₁^α:</strong> <span class="hex-val font-mono" id="val-dec-c1-alpha"></span></p>
+                            <p><strong>Discrete Logarithm Target (V):</strong> <span class="hex-val font-mono" id="val-dec-target"></span></p>
+                            <p><strong>Solved Tally (σ):</strong> <span class="math-highlight font-mono" id="val-dec-solved">0</span> (by brute-forcing g^k mod p for k = 0...N)</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- FULL-WIDTH LIVE LEDGER FEED -->
+        <div class="card ledger-card full-width">
+            <h2>Live Verification Ledger</h2>
+            <p class="section-desc">Audit real-time incoming payloads and check NIZK proof validity logs.</p>
+            <div class="ledger-container" id="ledger-feed">
+                <div class="empty-state">No transaction logs available yet. Cast a vote to see the ledger in action!</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- NOTIFICATION MODAL -->
+    <div class="modal hidden" id="status-modal">
+        <div class="modal-content">
+            <span class="modal-close" id="modal-close-btn">&times;</span>
+            <div id="modal-body"></div>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

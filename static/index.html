@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cryptovote - Voter Client Dashboard</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="glow-bg"></div>
+    <div class="container">
+        <!-- HEADER -->
+        <header>
+            <div class="logo">
+                <h1>Cryptovote</h1>
+                <span class="badge">VOTER CLIENT</span>
+            </div>
+            <p class="subtitle">Secure Classroom Voting powered by Homomorphic ElGamal & 1-out-of-2 NIZK Proofs</p>
+        </header>
+
+        <!-- ELECTION PARAMS AND ACCUMULATOR STATS -->
+        <div class="grid-2">
+            <div class="card param-card">
+                <h3>Public Cryptographic Parameters</h3>
+                <div class="param-grid">
+                    <div class="param-item">
+                        <span class="param-label">Modulus (p) - RFC 3526 Group 14 (2048-bit)</span>
+                        <span class="param-value hex-val" id="val-p">Loading...</span>
+                    </div>
+                    <div class="param-grid-row">
+                        <div class="param-item">
+                            <span class="param-label">Subgroup Order (q)</span>
+                            <span class="param-value hex-val" id="val-q">Loading...</span>
+                        </div>
+                        <div class="param-item">
+                            <span class="param-label">Generator (g)</span>
+                            <span class="param-value" id="val-g">Loading...</span>
+                        </div>
+                    </div>
+                    <div class="param-item">
+                        <span class="param-label">Server Public Key (u)</span>
+                        <span class="param-value hex-val" id="val-u">Loading...</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card accumulator-card">
+                <h3>Global Homomorphic Accumulator</h3>
+                <div class="acc-grid">
+                    <div class="acc-stat-box">
+                        <span class="acc-stat-label">Votes Cast</span>
+                        <span class="acc-stat-number" id="val-votes-count">0</span>
+                    </div>
+                    <div class="acc-details">
+                        <div class="param-item">
+                            <span class="param-label">Accumulated C₁ (g^∑rᵢ mod p)</span>
+                            <span class="param-value hex-val" id="val-c1">1</span>
+                        </div>
+                        <div class="param-item">
+                            <span class="param-label">Accumulated C₂ (u^∑rᵢ * g^∑bᵢ mod p)</span>
+                            <span class="param-value hex-val" id="val-c2">1</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="election-status-tag open" id="val-election-status">ELECTION OPEN</div>
+            </div>
+        </div>
+
+        <div class="grid-2 main-grid">
+            <!-- VOTER PANEL -->
+            <div class="card voter-card">
+                <h2>Cast Your Encrypted Vote</h2>
+                <p class="section-desc">Select your option and enter your single-use token. All calculations and cryptographic proofs are generated <strong>locally in your browser</strong> using client-side JS BigInt before submission.</p>
+                
+                <div class="form-group">
+                    <label for="token-input">Single-Use Token</label>
+                    <input type="text" id="token-input" placeholder="e.g., TKN-8F3A92" autocomplete="off">
+                </div>
+
+                <div class="vote-selector">
+                    <label class="vote-option yes">
+                        <input type="radio" name="vote-choice" value="1">
+                        <div class="option-card">
+                            <span class="option-icon">👍</span>
+                            <span class="option-label">YES</span>
+                            <span class="option-val">(b = 1)</span>
+                        </div>
+                    </label>
+                    <label class="vote-option no">
+                        <input type="radio" name="vote-choice" value="0">
+                        <div class="option-card">
+                            <span class="option-icon">👎</span>
+                            <span class="option-label">NO</span>
+                            <span class="option-val">(b = 0)</span>
+                        </div>
+                    </label>
+                </div>
+
+                <button class="btn btn-primary" id="btn-prepare-vote">Generate Cryptographic Payload</button>
+
+                <!-- CRYPTO MATHEMATICS INSPECTOR (COLLAPSIBLE/DYNAMICAL) -->
+                <div class="crypto-inspector hidden" id="crypto-inspector">
+                    <h4>Client-Side Cryptographic Math Inspector</h4>
+                    <p class="inspector-desc">This panel displays the exact calculations executed locally by your browser. No plain votes are sent to the server.</p>
+                    
+                    <div class="math-step">
+                        <h5>Step 1: Chosen Vote & Random Blinding Factor</h5>
+                        <div class="math-box">
+                            <p><strong>Choice (b):</strong> <span id="inspect-b" class="math-highlight"></span></p>
+                            <p><strong>Randomness (r):</strong> <span id="inspect-r" class="hex-val font-mono"></span></p>
+                        </div>
+                    </div>
+
+                    <div class="math-step">
+                        <h5>Step 2: Computed ElGamal Ciphertext</h5>
+                        <div class="math-box">
+                            <p><strong>c₁ = gʳ mod p:</strong> <span id="inspect-c1" class="hex-val font-mono"></span></p>
+                            <p><strong>c₂ = uʳ * gᵇ mod p:</strong> <span id="inspect-c2" class="hex-val font-mono"></span></p>
+                        </div>
+                    </div>
+
+                    <div class="math-step">
+                        <h5>Step 3: 1-out-of-2 NIZK OR Proof Commitments</h5>
+                        <p class="math-info">Depending on whether b=0 or b=1, one branch is calculated honestly (real), while the other branch's commitments are simulated.</p>
+                        <div class="grid-2 small-grid">
+                            <div class="math-box">
+                                <h6>Branch 0 (b=0)</h6>
+                                <p><strong>A₀:</strong> <span id="inspect-a0" class="hex-val font-mono"></span></p>
+                                <p><strong>B₀:</strong> <span id="inspect-b0" class="hex-val font-mono"></span></p>
+                            </div>
+                            <div class="math-box">
+                                <h6>Branch 1 (b=1)</h6>
+                                <p><strong>A₁:</strong> <span id="inspect-a1" class="hex-val font-mono"></span></p>
+                                <p><strong>B₁:</strong> <span id="inspect-b1" class="hex-val font-mono"></span></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="math-step">
+                        <h5>Step 4: Fiat-Shamir Challenge Splitting</h5>
+                        <div class="math-box">
+                            <p><strong>Fiat-Shamir Hash (c_h):</strong> <span id="inspect-ch" class="hex-val font-mono"></span></p>
+                            <p><strong>Branch 0 Challenge (c_h₀):</strong> <span id="inspect-ch0" class="hex-val font-mono"></span></p>
+                            <p><strong>Branch 1 Challenge (c_h₁):</strong> <span id="inspect-ch1" class="hex-val font-mono"></span></p>
+                            <p class="math-check"><strong>Verification:</strong> (c_h₀ + c_h₁) % q == c_h ? <span id="inspect-ch-check" class="check-badge"></span></p>
+                        </div>
+                    </div>
+
+                    <div class="math-step">
+                        <h5>Step 5: Generated Responses</h5>
+                        <div class="grid-2 small-grid">
+                            <div class="math-box">
+                                <h6>s₀ = (w₀ + c_h₀ * r) % q</h6>
+                                <p><strong>s₀:</strong> <span id="inspect-s0" class="hex-val font-mono"></span></p>
+                            </div>
+                            <div class="math-box">
+                                <h6>s₁ = (w₁ + c_h₁ * r) % q</h6>
+                                <p><strong>s₁:</strong> <span id="inspect-s1" class="hex-val font-mono"></span></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="json-payload-view">
+                        <h5>Formulated JSON Payload to Transmit</h5>
+                        <pre id="inspect-json" class="font-mono"></pre>
+                    </div>
+
+                    <button class="btn btn-success" id="btn-submit-vote">Cast Encrypted Vote securely</button>
+                </div>
+            </div>
+
+            <!-- LIVE LEDGER LOG -->
+            <div class="card ledger-card">
+                <h2>Live Verification Ledger</h2>
+                <p class="section-desc">Real-time ledger logging all incoming ballot payloads and showing the detailed equations checked by the server.</p>
+                <div class="ledger-container" id="ledger-feed">
+                    <div class="empty-state">No transaction logs available yet. Cast a vote to see the ledger in action!</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- NOTIFICATION MODAL -->
+    <div class="modal hidden" id="status-modal">
+        <div class="modal-content">
+            <span class="modal-close" id="modal-close-btn">&times;</span>
+            <div id="modal-body"></div>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
